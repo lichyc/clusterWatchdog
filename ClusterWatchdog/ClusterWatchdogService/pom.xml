@@ -28,7 +28,7 @@
 					<generateClient>false</generateClient>
 					<archive>
                       <manifestEntries>
-							<Dependencies>org.infinispan,org.jgroups,org.jboss.as.server,org.jboss.as.clustering.jgroups</Dependencies>
+							<Dependencies>org.jboss.as.naming,org.jgroups,org.jboss.as.server,org.jboss.as.clustering.jgroups</Dependencies>
 					</manifestEntries>	 
                     </archive>
 				</configuration>
@@ -74,6 +74,11 @@
 			<type>pom</type>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+	<groupId>javax.inject</groupId>
+	<artifactId>javax.inject</artifactId>
+	<scope>provided</scope>
+</dependency>
 	</dependencies>
 	<packaging>ejb</packaging>
 </project>

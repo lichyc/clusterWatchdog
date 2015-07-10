@@ -18,7 +18,7 @@
  * License along with this software; if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
- */ 
+ */
 package com.redhat.gss.eap6.clustering;
 
 import java.util.StringTokenizer;
@@ -27,107 +27,141 @@ import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.annotation.Resource;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 
-import org.jboss.as.clustering.jgroups.ChannelFactory;
-import org.jboss.as.server.CurrentServiceContainer;
-import org.jboss.msc.service.ServiceName;
 import org.jgroups.Channel;
 import org.jgroups.ChannelListener;
 
 /**
  *
  * @author <a href="mailto:clichybi@redhat.com">Carsten Lichy-Bittendorf</a>
- * @version $Revision$
- * $Date$:    Date of last commit
+ * @version $Revision$ $Date$: Date of last commit
  *
  */
 @Startup
 @Singleton
 public class ClusterWatchdog {
-	
-	private static final Logger log = Logger.getLogger( ClusterWatchdog.class.getName() );
-	
+
+	private static final Logger log = Logger.getLogger(ClusterWatchdog.class
+			.getName());
+
+	private static final String CHANNEL_NAME = "clusterWatchdog";
+
 	private JgroupsViewChangeReceiverAdapter viewChangeReceiver = new JgroupsViewChangeReceiverAdapter();
-	
+
+	@Resource(lookup = "java:jboss/channel/watchdogChannel")
 	private Channel watchdogChannel;
-	
+
+	private int retryInterval = 0;
+
 	@PostConstruct
 	protected void init() {
-		
+
 		PropertiesHelper propsHelper = PropertiesHelper.getInstance();
-		
-		StringTokenizer changeListenerListTokenizer = new StringTokenizer(propsHelper.getProperty(PropertiesHelper.WATCHDOG_JOIN_LISTENER_LIST_KEY), ",;:");
+
+		StringTokenizer changeListenerListTokenizer = new StringTokenizer(
+				propsHelper
+						.getProperty(PropertiesHelper.WATCHDOG_JOIN_LISTENER_LIST_KEY),
+				",;:");
 		while (changeListenerListTokenizer.hasMoreElements()) {
 			String className = "N/A";
 			Class<?> clazz;
 			try {
 				className = changeListenerListTokenizer.nextToken();
 				clazz = Class.forName(className);
-				JgroupsViewChangeListener listenerInstance = (JgroupsViewChangeListener) clazz.newInstance();
-				viewChangeReceiver.registerJoinViewChangeListener(listenerInstance);
+				JgroupsViewChangeListener listenerInstance = (JgroupsViewChangeListener) clazz
+						.newInstance();
+				viewChangeReceiver
+						.registerJoinViewChangeListener(listenerInstance);
 			} catch (Exception e) {
-				log.log(Level.SEVERE, "Failed to add join listener "+className+", due to " +e+ " It's mandatory to take actions, as the watchdog can't protect your system!");
+				log.log(Level.SEVERE,
+						"Failed to add join listener "
+								+ className
+								+ ", due to "
+								+ e
+								+ " It's mandatory to take actions, as the watchdog can't protect your system!");
 			}
-			
+
 		}
-		
-		changeListenerListTokenizer = new StringTokenizer(propsHelper.getProperty(PropertiesHelper.WATCHDOG_SPLIT_LISTENER_LIST_KEY), ",;:");
+
+		changeListenerListTokenizer = new StringTokenizer(
+				propsHelper
+						.getProperty(PropertiesHelper.WATCHDOG_SPLIT_LISTENER_LIST_KEY),
+				",;:");
 		while (changeListenerListTokenizer.hasMoreElements()) {
 			String className = "N/A";
 			Class<?> clazz;
 			try {
 				className = changeListenerListTokenizer.nextToken();
 				clazz = Class.forName(className);
-				JgroupsViewChangeListener listenerInstance = (JgroupsViewChangeListener) clazz.newInstance();
-				viewChangeReceiver.registerSplitViewChangeListener(listenerInstance);
+				JgroupsViewChangeListener listenerInstance = (JgroupsViewChangeListener) clazz
+						.newInstance();
+				viewChangeReceiver
+						.registerSplitViewChangeListener(listenerInstance);
 			} catch (Exception e) {
-				log.log(Level.SEVERE, "Failed to add split listener "+className+", due to " +e+ " It's mandatory to take actions, as the watchdog can't protect your system!");
+				log.log(Level.SEVERE,
+						"Failed to add split listener "
+								+ className
+								+ ", due to "
+								+ e
+								+ " It's mandatory to take actions, as the watchdog can't protect your system!");
 			}
-			
+
 		}
-			
-		ChannelFactory factory = (ChannelFactory) CurrentServiceContainer.getServiceContainer().getService(ServiceName.of("jboss", "jgroups", "stack")).getService().getValue();		
+
 		try {
-			
-			watchdogChannel = factory.createChannel("clusterWatchdog");
-			
-			changeListenerListTokenizer = new StringTokenizer(propsHelper.getProperty(PropertiesHelper.WATCHDOG_CHANNEL_LISTENER_LIST_KEY), ",;:");
+			changeListenerListTokenizer = new StringTokenizer(
+					propsHelper
+							.getProperty(PropertiesHelper.WATCHDOG_CHANNEL_LISTENER_LIST_KEY),
+					",;:");
 			while (changeListenerListTokenizer.hasMoreElements()) {
 				String className = "N/A";
 				Class<?> clazz;
 				try {
 					className = changeListenerListTokenizer.nextToken();
 					clazz = Class.forName(className);
-					ChannelListener listenerInstance = (ChannelListener) clazz.newInstance();
+					ChannelListener listenerInstance = (ChannelListener) clazz
+							.newInstance();
 					watchdogChannel.addChannelListener(listenerInstance);
 				} catch (Exception e) {
-					log.log(Level.SEVERE, "Failed to add listener "+className+", due to " +e+ " It's mandatory to take actions, as the watchdog can't protect your system!");
+					log.log(Level.SEVERE,
+							"Failed to add listener "
+									+ className
+									+ ", due to "
+									+ e
+									+ " It's mandatory to take actions, as the watchdog can't protect your system!");
 				}
-				
+
 			}
-			
+
 			watchdogChannel.setReceiver(viewChangeReceiver);
-			watchdogChannel.connect("clusterWatchdog");
-					
+			watchdogChannel.connect(CHANNEL_NAME);
+
 		} catch (Exception e) {
-			log.log(Level.SEVERE,"Failed to start watchdog due to: "+e + " It's mandatory to take actions, as the watchdog can't protect your system!");
+			log.log(Level.SEVERE,
+					"Failed to start watchdog due to: "
+							+ e
+							+ " It's mandatory to take actions, as the watchdog can't protect your system!");
 			stop();
-			throw new RuntimeException("Failed to start watchdog due to: "+e + " It's mandatory to take actions, as the watchdog can't protect your system!");
+			throw new RuntimeException(
+					"Failed to start watchdog due to: "
+							+ e
+							+ " It's mandatory to take actions, as the watchdog can't protect your system!");
 		}
-		
+
 		log.log(Level.INFO, "Cluster Watchdog started");
-		
-	  }
-		
+
+	}
+
 	@PreDestroy
 	public void stop() {
 		log.log(Level.INFO, "Cluster Watchdog get stopped!");
 		if (null != watchdogChannel) {
 			watchdogChannel.clearChannelListeners();
+			watchdogChannel.setReceiver(null);
 			watchdogChannel.close();
 		}
 	}
-	
 }

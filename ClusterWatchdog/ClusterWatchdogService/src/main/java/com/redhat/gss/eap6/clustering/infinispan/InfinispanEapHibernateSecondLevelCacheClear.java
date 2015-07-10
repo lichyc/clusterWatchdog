@@ -36,6 +36,8 @@ import com.redhat.gss.eap6.clustering.AbstractJmxViewChangeListener;
 public class InfinispanEapHibernateSecondLevelCacheClear extends AbstractJmxViewChangeListener {
 	private static final Logger log = Logger.getLogger( InfinispanEapHibernateSecondLevelCacheClear.class.getName() );
 	
+	
+	
 	/* (non-Javadoc)
 	 * @see com.redhat.gss.eap6.jgroups.JgroupsViewChangeListener#getName()
 	 */
