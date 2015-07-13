@@ -35,6 +35,8 @@ import org.jgroups.Channel;
 import org.jgroups.ChannelListener;
 
 /**
+ * The Watchdog itself is a {@link javax.ejb.Singleton}.
+ * During <code>init()</code> all listener get created and added before connecting the channel. 
  *
  * @author <a href="mailto:clichybi@redhat.com">Carsten Lichy-Bittendorf</a>
  * @version $Revision$ $Date$: Date of last commit
@@ -47,14 +49,13 @@ public class ClusterWatchdog {
 	private static final Logger log = Logger.getLogger(ClusterWatchdog.class
 			.getName());
 
-	private static final String CHANNEL_NAME = "clusterWatchdog";
+	private static final String CHANNEL_NAME = JGroupsChannelServiceActivator.CHANNEL_NAME;
 
 	private JgroupsViewChangeReceiverAdapter viewChangeReceiver = new JgroupsViewChangeReceiverAdapter();
 
-	@Resource(lookup = "java:jboss/channel/watchdogChannel")
+	@Resource(lookup = JGroupsChannelServiceActivator.JNDI_NAME)
 	private Channel watchdogChannel;
 
-	private int retryInterval = 0;
 
 	@PostConstruct
 	protected void init() {
@@ -125,6 +126,7 @@ public class ClusterWatchdog {
 					ChannelListener listenerInstance = (ChannelListener) clazz
 							.newInstance();
 					watchdogChannel.addChannelListener(listenerInstance);
+					log.log(Level.INFO, "registered Channel-Listener named: " + className);		
 				} catch (Exception e) {
 					log.log(Level.SEVERE,
 							"Failed to add listener "

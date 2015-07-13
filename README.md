@@ -15,9 +15,10 @@ The service provides 2 interfaces which can get implemented to react on changes 
 
 ## Cluster Watchdog Architecture
 The basically is an EJB-Jar wrapped by a trivial EAR. So you can use it as separate deployment-unit or re-use the EJB-Jar inside your application.
-The watchdog is creating a JGroups channel based on the default JGroups configuration of the JBoss EAP instance it gets deployed into. So it uses the same configuration as used by the web, ejb, inifispan cluster, unless you tweaked the default JBoss configuration.
-Status changes (changeView, disconnect, etc.) on this JGroups channel will trigger events the listener can process. A new channel is used to not predict any established channel or channel name, while reusing the default configuration this channel should behave in-sync with your working channels.
-The Watchdog is not simply using a `org.infinispan.notifications.Listener` as this is limited to view changes. On JGroups level only we have chance to get closer to the reason of a state change, what might be from interest to derive the required action.
+The watchdog is creating a JGroups channel based on the default JGroups configuration of the JBoss EAP instance it gets deployed into. So it uses the same configuration as used by the web, ejb, inifispan cluster, unless you tweaked the default JBoss configuration.  
+Status changes (changeView, disconnect, etc.) on this JGroups channel will trigger events the listener can process. A new channel is used to not predict any established channel or channel name, while reusing the default configuration this channel should behave in-sync with your working channels.  
+The Watchdog is not simply using a `org.infinispan.notifications.Listener` as this is limited to view changes. On JGroups level only we have chance to get closer to the reason of a state change, what might be from interest to derive the required action.  
+
 **Remind:** Whether a shutdown or a network issue causes a disconnect of a node can get detected on this node only. This due to the fact that a ping is used to test the connections. So a node is able to detect whether another node is connected or not. If a node doesn't answer any more, there is no chance from outside to figure out why. Only locally it is possible to check whether the connection is closed (by intend) or disconnected (by an issue). Same as applies to a ping on OS level.  
 
 ## How to extend

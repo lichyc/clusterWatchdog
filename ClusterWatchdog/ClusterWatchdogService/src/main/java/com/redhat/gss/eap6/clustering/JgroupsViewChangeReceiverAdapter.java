@@ -21,6 +21,7 @@
  */ 
 package com.redhat.gss.eap6.clustering;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +47,8 @@ public class JgroupsViewChangeReceiverAdapter extends ReceiverAdapter {
 	private HashSet<JgroupsViewChangeListener> registeredListeners4Join = new HashSet<JgroupsViewChangeListener>();
 	
 	private List<Address> clusterMembers;
+	private List<Address> membersJoinCluster;
+	private List<Address> membersExitCluster;
 	
 	/** 
 	 * up to <link>http://www.jgroups.org/manual/html/user-channel.html#ReceivingViewChanges</link> 
@@ -54,49 +57,45 @@ public class JgroupsViewChangeReceiverAdapter extends ReceiverAdapter {
 	 *  @see org.jgroups.ReceiverAdapter#viewAccepted(org.jgroups.View)
 	 */
 	public void viewAccepted(View view) {
-		if (memberLeftCluster(view)) {
+		
+		updateMemberList(view);
+		
+		if ((null != membersExitCluster) && 0 < membersExitCluster.size()) {
 			log.log(Level.INFO, "Recognized a cluster member decrease, so watchdog will engage.");
 			Iterator<JgroupsViewChangeListener> registeredListenersIterator = registeredListeners4Split.iterator();
 			while(registeredListenersIterator.hasNext()) {
-				registeredListenersIterator.next().execute();
+				registeredListenersIterator.next().execute(view, membersJoinCluster, membersExitCluster);
 			}
 		} 
-		if (memberJoinedCluster(view))  {
+		if ((null != membersJoinCluster) && 0 < membersJoinCluster.size())  {
 			log.log(Level.INFO, "Recognized a cluster member increase, so watchdog will engage.");
 			Iterator<JgroupsViewChangeListener> registeredListenersIterator = registeredListeners4Join.iterator();
 			while(registeredListenersIterator.hasNext()) {
-				registeredListenersIterator.next().execute();
+				registeredListenersIterator.next().execute(view, membersJoinCluster, membersExitCluster);
 			}
 		}
 		
 		clusterMembers = view.getMembers();		
 	}
 	
-	private boolean memberLeftCluster(View view) {
+	private void updateMemberList(View view) {
 		
-		boolean memberLeftCluster = false;
+		membersJoinCluster = new ArrayList<Address>();
+		membersExitCluster = new ArrayList<Address>();
+		
 		if (null != clusterMembers) {
 			Iterator<Address> clusterMemberIterator =  clusterMembers.iterator();
 			while (clusterMemberIterator.hasNext()) {
-				if (!view.containsMember((Address) clusterMemberIterator.next()))  memberLeftCluster = true;
+				Address clusterMember = (Address) clusterMemberIterator.next();
+				if (!view.containsMember(clusterMember))  membersExitCluster.add(clusterMember);
 			}
-		}
-		
-		return memberLeftCluster;
-	}
-	
-	private boolean memberJoinedCluster(View view) {
-		
-		boolean memberJoinedCluster = false;
-		if (null != clusterMembers) {
-			Iterator<Address> clusterMemberIterator =  view.iterator();
+			clusterMemberIterator =  view.iterator();
 			while (clusterMemberIterator.hasNext()) {
-				if (!clusterMembers.contains((Address) clusterMemberIterator.next()))  memberJoinedCluster = true;
+				Address clusterMember = (Address) clusterMemberIterator.next();
+				if (!clusterMembers.contains((Address) clusterMember))  membersJoinCluster.add(clusterMember);
 			}
-		} else {
-			memberJoinedCluster = true;
 		}
-		return memberJoinedCluster;
+		
 	}
 
 	/**

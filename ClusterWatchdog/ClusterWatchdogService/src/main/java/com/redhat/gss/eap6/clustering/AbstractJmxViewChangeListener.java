@@ -22,6 +22,7 @@
 package com.redhat.gss.eap6.clustering;
 
 import java.lang.management.ManagementFactory;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,6 +32,9 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
+
+import org.jgroups.Address;
+import org.jgroups.View;
 
 /**
  * Abstract class as base to call JMX operation when listener get activated. 
@@ -51,7 +55,7 @@ public abstract class AbstractJmxViewChangeListener implements
 	 * @see com.redhat.gss.eap6.jgroups.JgroupsViewChangeListener#execute(org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent)
 	 */
 	@Override
-	public void execute() {
+	public void execute(View view, List<Address> membersJoinCluster, List<Address> membersExitCluster) {
 		log.entering(this.getClass().getName(),"execute");
 		
 		try {

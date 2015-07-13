@@ -37,10 +37,11 @@ public class PropertiesHelper {
 	
 	private static final Logger log = Logger.getLogger( PropertiesHelper.class.getName() );
 	
-	public static final String WATCHDOG_SPLIT_LISTENER_LIST_KEY = "ClusterFailureWatchdog.Split.JgroupsViewChangeListener.List";
-	public static final String WATCHDOG_JOIN_LISTENER_LIST_KEY = "ClusterFailureWatchdog.Join.JgroupsViewChangeListener.List";
-	public static final String WATCHDOG_CHANNEL_LISTENER_LIST_KEY = "ClusterFailureWatchdog.ChannelListener.List";
+	public static final String WATCHDOG_SPLIT_LISTENER_LIST_KEY = "ClusterWatchdog.Split.JgroupsViewChangeListener.List";
+	public static final String WATCHDOG_JOIN_LISTENER_LIST_KEY = "ClusterWatchdog.Join.JgroupsViewChangeListener.List";
+	public static final String WATCHDOG_CHANNEL_LISTENER_LIST_KEY = "ClusterWatchdog.ChannelListener.List";
 	public static final String WATCHDOG_CHANGE_LISTENER_LIST_VALUE = "com.redhat.gss.eap6.clustering.infinispan.InfinispanEapHibernateSecondLevelCacheClear";
+	public static final String JGROUPS_STACK_NAME = "ClusterWatchdog.jgroups.stack.name";
 	
 	private static PropertiesHelper me;
 	
@@ -49,7 +50,7 @@ public class PropertiesHelper {
 	private PropertiesHelper() {
 		super();
 		try {
-			myProps.load(PropertiesHelper.class.getResourceAsStream("/clusterFailureWatchdog.properties"));
+			myProps.load(PropertiesHelper.class.getResourceAsStream("/clusterWatchdog.properties"));
 		} catch (IOException e) {
 			log.log(Level.WARNING,"properties file not found, due to "+e);
 		}

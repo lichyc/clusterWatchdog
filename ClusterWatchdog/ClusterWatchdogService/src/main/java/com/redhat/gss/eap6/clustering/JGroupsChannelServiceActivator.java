@@ -21,6 +21,9 @@
  */ 
 package com.redhat.gss.eap6.clustering;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.jboss.as.clustering.jgroups.ChannelFactory;
 import org.jboss.as.clustering.jgroups.subsystem.ChannelFactoryService;
 import org.jboss.as.clustering.jgroups.subsystem.ChannelService;
@@ -47,28 +50,41 @@ import org.jgroups.Channel;
  */
 public class JGroupsChannelServiceActivator implements ServiceActivator  {
 	
-	private static final String JNDI_NAME = "java:jboss/channel/watchdogChannel";
+	private static final Logger log = Logger.getLogger(JGroupsChannelServiceActivator.class
+			.getName());
+	
+	public static final String JNDI_NAME = "java:jboss/channel/watchdogChannel";
 
     private static final String JGROUPS_CHANNEL_SERVICE_PREFIX = "watchdog.jgroups";
-
-    private static final String STACK_NAME = "udp";
 
     public static final String CHANNEL_NAME = "clusterWatchdog";
 
     private ServiceName channelServiceName;
+    
+    private  String stackName = null;
 
     @Override
     public void activate(ServiceActivatorContext context) {
+    	
+    	PropertiesHelper propsHelper = PropertiesHelper.getInstance();
+    	stackName = propsHelper.getProperty(PropertiesHelper.JGROUPS_STACK_NAME);
+    	
+    	try {
+    	
         channelServiceName = ChannelService.getServiceName(CHANNEL_NAME);
 
         createChannel(context.getServiceTarget());
 
         bindChannelToJNDI(context.getServiceTarget());
+        
+    	} catch (IllegalStateException e) {
+    		log.log(Level.INFO, "channel seems to already exist, skipping creation and binding.");
+    	}
     }
 
     void createChannel(ServiceTarget target) {
         InjectedValue<ChannelFactory> channelFactory = new InjectedValue<>();
-        ServiceName serviceName = ChannelFactoryService.getServiceName(STACK_NAME);
+        ServiceName serviceName = ChannelFactoryService.getServiceName(stackName);
         ChannelService channelService = new ChannelService(CHANNEL_NAME, channelFactory);
 
         target.addService(channelServiceName, channelService)

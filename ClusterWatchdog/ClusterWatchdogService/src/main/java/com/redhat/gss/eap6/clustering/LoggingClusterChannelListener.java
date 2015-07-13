@@ -28,7 +28,8 @@ import org.jgroups.Channel;
 import org.jgroups.ChannelListener;
 
 /**
- *
+ * A trivial implementation of {@link org.jgroups.ChannelListener} which logs the state changes the channel the listener is registered.
+ * 
  * @author <a href="mailto:clichybi@redhat.com">Carsten Lichy-Bittendorf</a>
  * @version $Revision$
  * $Date$:    Date of last commit

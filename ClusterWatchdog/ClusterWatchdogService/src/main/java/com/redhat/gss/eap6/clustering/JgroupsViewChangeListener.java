@@ -21,6 +21,11 @@
  */ 
 package com.redhat.gss.eap6.clustering;
 
+import java.util.List;
+
+import org.jgroups.Address;
+import org.jgroups.View;
+
 
 /**
  *
@@ -31,7 +36,7 @@ package com.redhat.gss.eap6.clustering;
  */
 public interface JgroupsViewChangeListener {
 	
-	public void execute();
+	public void execute(View view, List<Address> membersJoinCluster, List<Address> membersExitCluster);
 	public String getName();
 
 }
