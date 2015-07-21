@@ -21,7 +21,12 @@
  */ 
 package com.redhat.gss.eap6.clustering.infinispan;
 
+import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.jgroups.Address;
+import org.jgroups.View;
 
 import com.redhat.gss.eap6.clustering.AbstractJmxViewChangeListener;
 
@@ -60,6 +65,24 @@ public class InfinispanEapHibernateSecondLevelCacheClear extends AbstractJmxView
 	
     public String[] getSignature(){
 		return new String[] { };
+	}
+
+	@Override
+	public void executeOnJoin(View view, List<Address> membersJoinCluster) {
+		log.log(Level.INFO, "Recognized that members joined. No action required");
+		
+	}
+
+	@Override
+	public void executeOnExit(View view, List<Address> membersExitCluster) {
+		log.log(Level.INFO, "Recognized that members are graceful leaving. No action required");
+		
+	}
+
+	@Override
+	public void executeOnFailure(View view, List<Address> membersFailureCluster) {
+		execute(view, membersFailureCluster);
+		
 	}
 
 }

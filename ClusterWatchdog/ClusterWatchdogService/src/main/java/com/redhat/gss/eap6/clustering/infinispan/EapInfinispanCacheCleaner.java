@@ -49,15 +49,11 @@ public class EapInfinispanCacheCleaner implements ChannelListener {
 	private MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
 	
 	private boolean wasDisconnected = false;
-	private boolean wasConnected = false;
-
 	/* (non-Javadoc)
 	 * @see org.jgroups.ChannelListener#channelConnected(org.jgroups.Channel)
 	 */
 	@Override
 	public void channelConnected(Channel channel) {
-		wasConnected = true;
-		
 		if(wasDisconnected) {
 			log.log(Level.INFO, ("This is a reconnect, so we need clean the caches"));
 			executeCleanViaJmx("jboss.infinispan:type=Cache,name=\"repl(repl_async)\",manager=\"ejb34\",component=Cache");
@@ -81,7 +77,6 @@ public class EapInfinispanCacheCleaner implements ChannelListener {
 	@Override
 	public void channelClosed(Channel channel) {
 		wasDisconnected = false;
-		wasConnected = false;
 
 	}
 	

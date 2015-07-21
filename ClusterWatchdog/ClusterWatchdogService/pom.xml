@@ -4,7 +4,7 @@
 	<parent>
 		<artifactId>ClusterWatchdog</artifactId>
 		<groupId>com.redhat.gss.eap</groupId>
-		<version>0.0.1-SNAPSHOT</version>
+		<version>0.0.2-SNAPSHOT</version>
 	</parent>
 	<artifactId>ClusterWatchdogService</artifactId>
 	<name>jboss-eap-cluster-watchdog-service</name>

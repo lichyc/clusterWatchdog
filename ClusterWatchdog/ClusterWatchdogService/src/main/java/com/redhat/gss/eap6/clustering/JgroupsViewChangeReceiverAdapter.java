@@ -29,10 +29,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.jgroups.Address;
+import org.jgroups.Message;
 import org.jgroups.ReceiverAdapter;
 import org.jgroups.View;
 
 /**
+ * The {@link ClusterWatchsog}'s JGroups {@link ReceiverAdapter}. </BR>
+ * it processes view changes and messages from other cluster members.
  * 
  * @author <a href="mailto:clichybi@redhat.com">Carsten Lichy-Bittendorf</a>
  * @version $Revision$
@@ -43,12 +46,13 @@ public class JgroupsViewChangeReceiverAdapter extends ReceiverAdapter {
 	
 	private static final Logger log = Logger.getLogger( JgroupsViewChangeReceiverAdapter.class.getName() );
 	
-	private HashSet<JgroupsViewChangeListener> registeredListeners4Split = new HashSet<JgroupsViewChangeListener>();
-	private HashSet<JgroupsViewChangeListener> registeredListeners4Join = new HashSet<JgroupsViewChangeListener>();
+	private HashSet<JgroupsViewChangeListener> registeredListeners = new HashSet<JgroupsViewChangeListener>();
 	
 	private List<Address> clusterMembers;
 	private List<Address> membersJoinCluster;
 	private List<Address> membersExitCluster;
+	private List<Address> membersFailureCluster;
+	private List<Address> membersSendShutdownCluster = new ArrayList<Address>();
 	
 	/** 
 	 * up to <link>http://www.jgroups.org/manual/html/user-channel.html#ReceivingViewChanges</link> 
@@ -59,22 +63,27 @@ public class JgroupsViewChangeReceiverAdapter extends ReceiverAdapter {
 	public void viewAccepted(View view) {
 		
 		updateMemberList(view);
-		
+		if ((null != membersFailureCluster) && 0 < membersFailureCluster.size()) {
+			log.log(Level.INFO, "Recognized a cluster member FAILURE, so watchdog will engage.");
+			Iterator<JgroupsViewChangeListener> registeredListenersIterator = registeredListeners.iterator();
+			while(registeredListenersIterator.hasNext()) {
+				registeredListenersIterator.next().executeOnFailure(view, membersFailureCluster);
+			}
+		} 
 		if ((null != membersExitCluster) && 0 < membersExitCluster.size()) {
 			log.log(Level.INFO, "Recognized a cluster member decrease, so watchdog will engage.");
-			Iterator<JgroupsViewChangeListener> registeredListenersIterator = registeredListeners4Split.iterator();
+			Iterator<JgroupsViewChangeListener> registeredListenersIterator = registeredListeners.iterator();
 			while(registeredListenersIterator.hasNext()) {
-				registeredListenersIterator.next().execute(view, membersJoinCluster, membersExitCluster);
+				registeredListenersIterator.next().executeOnExit(view, membersExitCluster);
 			}
 		} 
 		if ((null != membersJoinCluster) && 0 < membersJoinCluster.size())  {
 			log.log(Level.INFO, "Recognized a cluster member increase, so watchdog will engage.");
-			Iterator<JgroupsViewChangeListener> registeredListenersIterator = registeredListeners4Join.iterator();
+			Iterator<JgroupsViewChangeListener> registeredListenersIterator = registeredListeners.iterator();
 			while(registeredListenersIterator.hasNext()) {
-				registeredListenersIterator.next().execute(view, membersJoinCluster, membersExitCluster);
+				registeredListenersIterator.next().executeOnJoin(view, membersJoinCluster);
 			}
-		}
-		
+		}		
 		clusterMembers = view.getMembers();		
 	}
 	
@@ -82,64 +91,70 @@ public class JgroupsViewChangeReceiverAdapter extends ReceiverAdapter {
 		
 		membersJoinCluster = new ArrayList<Address>();
 		membersExitCluster = new ArrayList<Address>();
+		membersFailureCluster = new ArrayList<Address>();
 		
 		if (null != clusterMembers) {
 			Iterator<Address> clusterMemberIterator =  clusterMembers.iterator();
 			while (clusterMemberIterator.hasNext()) {
 				Address clusterMember = (Address) clusterMemberIterator.next();
-				if (!view.containsMember(clusterMember))  membersExitCluster.add(clusterMember);
+				if (!view.containsMember(clusterMember))  {
+					if(membersSendShutdownCluster.contains(clusterMember)) {
+						membersExitCluster.add(clusterMember);
+						membersSendShutdownCluster.remove(clusterMember);
+					} else {
+						membersFailureCluster.add(clusterMember);
+					}
+				}
 			}
 			clusterMemberIterator =  view.iterator();
 			while (clusterMemberIterator.hasNext()) {
 				Address clusterMember = (Address) clusterMemberIterator.next();
 				if (!clusterMembers.contains((Address) clusterMember))  membersJoinCluster.add(clusterMember);
 			}
-		}
-		
+		}		
 	}
 
 	/**
 	 * @param jgroupsViewChangeListener
 	 */
-	public void registerJoinViewChangeListener(JgroupsViewChangeListener jgroupsViewChangeListener) {
+	public void registerViewChangeListener(JgroupsViewChangeListener jgroupsViewChangeListener) {
 		
-		registeredListeners4Join.add(jgroupsViewChangeListener);
-		log.log(Level.INFO, "registered Join-Listener named: " + jgroupsViewChangeListener.getName());		
+		registeredListeners.add(jgroupsViewChangeListener);
+		log.log(Level.INFO, "registered ViewChange-Listener named: " + jgroupsViewChangeListener.getName());		
 	}
 	
 	/**
 	 * @param jgroupsViewChangeListener
 	 */
-	public void unregisterJoinViewChangeListener(JgroupsViewChangeListener jgroupsViewChangeListener) {
+	public void unregisterViewChangeListener(JgroupsViewChangeListener jgroupsViewChangeListener) {
 		
-		if (registeredListeners4Join.contains(jgroupsViewChangeListener)) {
-			registeredListeners4Join.remove(jgroupsViewChangeListener);
-			log.log(Level.INFO, "un-registered Join-Listener named: " + jgroupsViewChangeListener.getName());
+		if (registeredListeners.contains(jgroupsViewChangeListener)) {
+			registeredListeners.remove(jgroupsViewChangeListener);
+			log.log(Level.INFO, "un-registered ViewChange-Listener named: " + jgroupsViewChangeListener.getName());
 		} else {
-			log.log(Level.WARNING, "Not un-registered Join-Listener named: " + jgroupsViewChangeListener.getName() + " due to not registered before!");
+			log.log(Level.WARNING, "Not un-registered ViewChange-Listener named: " + jgroupsViewChangeListener.getName() + " due to not registered before!");
 		}		
 	}
-	
-	/**
-	 * @param jgroupsViewChangeListener
-	 */
-	public void registerSplitViewChangeListener(JgroupsViewChangeListener jgroupsViewChangeListener) {
 		
-		registeredListeners4Split.add(jgroupsViewChangeListener);
-		log.log(Level.INFO, "registered Split-Listener named: " + jgroupsViewChangeListener.getName());		
-	}
-	
 	/**
-	 * @param jgroupsViewChangeListener
+	 * By convention the watchdog just send a message, when it's get stopped.</BR>
+	 * The message payload is by convention the current server state.
+	 * If the state is "stopping" it's a shutdown, so this node will do any processing any more.
+	 * On any other server state, we need to assume that something is wrong, to we assume a failure.
+	 * 
+	 * @see org.jgroups.ReceiverAdapter#receive(org.jgroups.Message)
 	 */
-	public void unregisterSplitViewChangeListener(JgroupsViewChangeListener jgroupsViewChangeListener) {
+	public void receive(Message msg) {
 		
-		if (registeredListeners4Split.contains(jgroupsViewChangeListener)) {
-			registeredListeners4Split.remove(jgroupsViewChangeListener);
-			log.log(Level.INFO, "un-registered vListener named: " + jgroupsViewChangeListener.getName());
+		Address sender = msg.getSrc();
+		String msgPayload = new String(msg.getBuffer());		
+
+		if("stopping".equals(msgPayload)) {
+			log.log(Level.INFO, "Cluster node " + sender +" has send shutdown notification.");
+			membersSendShutdownCluster.add(sender);
 		} else {
-			log.log(Level.WARNING, "Not un-registered Split-Listener named: " + jgroupsViewChangeListener.getName() + " due to not registered before!");
-		}		
-	}
+			log.log(Level.INFO, "Cluster node " + sender +" has send notification: " + msgPayload);
+		}
+    }
 
 }

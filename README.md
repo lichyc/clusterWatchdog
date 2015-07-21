@@ -21,10 +21,11 @@ The Watchdog is not simply using a `org.infinispan.notifications.Listener` as th
 
 **Remind:** Whether a shutdown or a network issue causes a disconnect of a node can get detected on this node only. This due to the fact that a ping is used to test the connections. So a node is able to detect whether another node is connected or not. If a node doesn't answer any more, there is no chance from outside to figure out why. Only locally it is possible to check whether the connection is closed (by intend) or disconnected (by an issue). Same as applies to a ping on OS level.  
 
+To get around this limitation the Watchdog is sending it's EAP server state to all members in the cluster. If a node is sending "stopping" the other Watchdog instances can assume that this node will shutdown. All other notifications and no notification before a leaving the view will be processed as failure.
+
 ## How to extend
 If you like to take action on:
-- a member disappearing from the cluster: Implement `com.redhat.gss.eap6.clustering.JgroupsViewChangeListener` and register your class.
-- a member joining the cluster: Implement `com.redhat.gss.eap6.clustering.JgroupsViewChangeListener` and register your class.
+- a member joining||disappearing from the cluster: Implement `com.redhat.gss.eap6.clustering.JgroupsViewChangeListener` and register your class.
 - local channel status change (connect/disconnect/close): Implement `org.jgroups.ChannelListener` and register your class.
 If you like to `clear` an Infinispan cache on disappear&|join of a member, you can extend from `com.redhat.gss.eap6.clustering.AbstractJmxViewChangeListener`.
 

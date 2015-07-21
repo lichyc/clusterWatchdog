@@ -21,6 +21,7 @@
  */
 package com.redhat.gss.eap6.clustering;
 
+import java.lang.management.ManagementFactory;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,9 +31,17 @@ import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
+import javax.management.AttributeNotFoundException;
+import javax.management.InstanceNotFoundException;
+import javax.management.MBeanException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.ReflectionException;
 
 import org.jgroups.Channel;
 import org.jgroups.ChannelListener;
+import org.jgroups.Message;
 
 /**
  * The Watchdog itself is a {@link javax.ejb.Singleton}.
@@ -52,6 +61,8 @@ public class ClusterWatchdog {
 	private static final String CHANNEL_NAME = JGroupsChannelServiceActivator.CHANNEL_NAME;
 
 	private JgroupsViewChangeReceiverAdapter viewChangeReceiver = new JgroupsViewChangeReceiverAdapter();
+	
+	private MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
 
 	@Resource(lookup = JGroupsChannelServiceActivator.JNDI_NAME)
 	private Channel watchdogChannel;
@@ -64,7 +75,7 @@ public class ClusterWatchdog {
 
 		StringTokenizer changeListenerListTokenizer = new StringTokenizer(
 				propsHelper
-						.getProperty(PropertiesHelper.WATCHDOG_JOIN_LISTENER_LIST_KEY),
+						.getProperty(PropertiesHelper.WATCHDOG_LISTENER_LIST_KEY),
 				",;:");
 		while (changeListenerListTokenizer.hasMoreElements()) {
 			String className = "N/A";
@@ -75,42 +86,17 @@ public class ClusterWatchdog {
 				JgroupsViewChangeListener listenerInstance = (JgroupsViewChangeListener) clazz
 						.newInstance();
 				viewChangeReceiver
-						.registerJoinViewChangeListener(listenerInstance);
+						.registerViewChangeListener(listenerInstance);
 			} catch (Exception e) {
 				log.log(Level.SEVERE,
-						"Failed to add join listener "
+						"Failed to add ViewChange-listener "
 								+ className
 								+ ", due to "
 								+ e
 								+ " It's mandatory to take actions, as the watchdog can't protect your system!");
 			}
 
-		}
-
-		changeListenerListTokenizer = new StringTokenizer(
-				propsHelper
-						.getProperty(PropertiesHelper.WATCHDOG_SPLIT_LISTENER_LIST_KEY),
-				",;:");
-		while (changeListenerListTokenizer.hasMoreElements()) {
-			String className = "N/A";
-			Class<?> clazz;
-			try {
-				className = changeListenerListTokenizer.nextToken();
-				clazz = Class.forName(className);
-				JgroupsViewChangeListener listenerInstance = (JgroupsViewChangeListener) clazz
-						.newInstance();
-				viewChangeReceiver
-						.registerSplitViewChangeListener(listenerInstance);
-			} catch (Exception e) {
-				log.log(Level.SEVERE,
-						"Failed to add split listener "
-								+ className
-								+ ", due to "
-								+ e
-								+ " It's mandatory to take actions, as the watchdog can't protect your system!");
-			}
-
-		}
+		}	
 
 		try {
 			changeListenerListTokenizer = new StringTokenizer(
@@ -161,9 +147,28 @@ public class ClusterWatchdog {
 	public void stop() {
 		log.log(Level.INFO, "Cluster Watchdog get stopped!");
 		if (null != watchdogChannel) {
+			try {
+				watchdogChannel.send(new Message().setBuffer(getServerState()));
+				if (watchdogChannel.flushSupported()) watchdogChannel.startFlush(true);
+			} catch (Exception e) {
+				log.log(Level.WARNING, "Failed to sennd server state to other members due to: "+e);
+			}
 			watchdogChannel.clearChannelListeners();
 			watchdogChannel.setReceiver(null);
 			watchdogChannel.close();
 		}
+	}
+
+	private byte[] getServerState() {
+		String serverState = "unknown"; 
+		try {
+			serverState = (String) mBeanServer.getAttribute(new ObjectName("jboss.as:management-root=server"), "serverState");
+		} catch (AttributeNotFoundException | InstanceNotFoundException
+				| MalformedObjectNameException | MBeanException
+				| ReflectionException e) {
+			log.log(Level.WARNING, "Failed to read server state due to: "+e);
+
+		}
+		return serverState.getBytes();
 	}
 }

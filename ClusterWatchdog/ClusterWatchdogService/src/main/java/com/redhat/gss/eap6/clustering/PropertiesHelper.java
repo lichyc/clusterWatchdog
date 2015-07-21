@@ -37,8 +37,7 @@ public class PropertiesHelper {
 	
 	private static final Logger log = Logger.getLogger( PropertiesHelper.class.getName() );
 	
-	public static final String WATCHDOG_SPLIT_LISTENER_LIST_KEY = "ClusterWatchdog.Split.JgroupsViewChangeListener.List";
-	public static final String WATCHDOG_JOIN_LISTENER_LIST_KEY = "ClusterWatchdog.Join.JgroupsViewChangeListener.List";
+	public static final String WATCHDOG_LISTENER_LIST_KEY = "ClusterWatchdog.JgroupsViewChangeListener.List";
 	public static final String WATCHDOG_CHANNEL_LISTENER_LIST_KEY = "ClusterWatchdog.ChannelListener.List";
 	public static final String WATCHDOG_CHANGE_LISTENER_LIST_VALUE = "com.redhat.gss.eap6.clustering.infinispan.InfinispanEapHibernateSecondLevelCacheClear";
 	public static final String JGROUPS_STACK_NAME = "ClusterWatchdog.jgroups.stack.name";
@@ -71,10 +70,7 @@ public class PropertiesHelper {
 			value = myProps.getProperty(key);
 			if (null == value) {
 				switch (key) {
-				case WATCHDOG_SPLIT_LISTENER_LIST_KEY: 
-					value = WATCHDOG_CHANGE_LISTENER_LIST_VALUE; 
-					break;
-				case WATCHDOG_JOIN_LISTENER_LIST_KEY: 
+				case WATCHDOG_LISTENER_LIST_KEY: 
 					value = WATCHDOG_CHANGE_LISTENER_LIST_VALUE; 
 					break;
 				default:

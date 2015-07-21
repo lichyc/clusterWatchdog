@@ -54,8 +54,7 @@ public abstract class AbstractJmxViewChangeListener implements
 	/* (non-Javadoc)
 	 * @see com.redhat.gss.eap6.jgroups.JgroupsViewChangeListener#execute(org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent)
 	 */
-	@Override
-	public void execute(View view, List<Address> membersJoinCluster, List<Address> membersExitCluster) {
+	public void execute(View view, List<Address> membersList) {
 		log.entering(this.getClass().getName(),"execute");
 		
 		try {

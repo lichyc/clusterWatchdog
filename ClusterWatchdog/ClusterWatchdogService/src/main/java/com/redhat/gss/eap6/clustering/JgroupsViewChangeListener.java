@@ -36,7 +36,31 @@ import org.jgroups.View;
  */
 public interface JgroupsViewChangeListener {
 	
-	public void execute(View view, List<Address> membersJoinCluster, List<Address> membersExitCluster);
+	/**
+	 * Called if member is joining the cluster
+	 * @param view
+	 * @param membersJoinCluster
+	 */
+	public void executeOnJoin(View view, List<Address> membersJoinCluster);
+		
+	/**
+	 * Called on regular exit of cluster member
+	 * @param view
+	 * @param membersExitCluster
+	 */
+	public void executeOnExit(View view, List<Address> membersExitCluster);
+	
+	/**
+	 * Called if a potential failure is detected.
+	 * @param view
+	 * @param membersFailureCluster
+	 */
+	public void executeOnFailure(View view, List<Address> membersFailureCluster);
+	
+	/**
+	 * Name to be logged during register/un-register
+	 * @return
+	 */
 	public String getName();
 
 }
