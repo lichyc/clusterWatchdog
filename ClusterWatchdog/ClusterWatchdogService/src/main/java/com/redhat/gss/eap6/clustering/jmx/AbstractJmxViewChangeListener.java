@@ -1,6 +1,6 @@
 /**
  * JBoss, Home of Professional Open Source
- * Copyright 2015, Red Hat, Inc. and individual contributors
+ * Copyright 2016, Red Hat, Inc. and individual contributors
  * by the @authors tag. See the copyright.txt in the distribution for a
  * full listing of individual contributors.
  *
@@ -19,13 +19,14 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */ 
-package com.redhat.gss.eap6.clustering;
+package com.redhat.gss.eap6.clustering.jmx;
 
 import java.lang.management.ManagementFactory;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.management.Attribute;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
 import javax.management.MBeanServer;
@@ -36,6 +37,8 @@ import javax.management.ReflectionException;
 import org.jgroups.Address;
 import org.jgroups.View;
 
+import com.redhat.gss.eap6.clustering.JgroupsViewChangeListener;
+
 /**
  * Abstract class as base to call JMX operation when listener get activated. 
  * 
@@ -44,34 +47,10 @@ import org.jgroups.View;
  * $Date$:    Date of last commit
  *
  */
-public abstract class AbstractJmxViewChangeListener implements
+public abstract class AbstractJmxViewChangeListener extends AbstractJmxBasedImpl implements
 		JgroupsViewChangeListener {
 	
 	private static final Logger log = Logger.getLogger( AbstractJmxViewChangeListener.class.getName() );
-	
-	private MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
-
-	/* (non-Javadoc)
-	 * @see com.redhat.gss.eap6.jgroups.JgroupsViewChangeListener#execute(org.infinispan.notifications.cachemanagerlistener.event.ViewChangedEvent)
-	 */
-	public void execute(View view, List<Address> membersList) {
-		log.entering(this.getClass().getName(),"execute");
-		
-		try {
-			mBeanServer.invoke(new ObjectName(getObjectName()), getOperationName(), getParameters(), getSignature());
-		} catch (InstanceNotFoundException e) {
-			log.log(Level.WARNING, "JMX command failed to execute, due to " +e);
-		} catch (MalformedObjectNameException e) {
-			log.log(Level.SEVERE, "JMX command failed to execute, due to " +e);
-		} catch (ReflectionException e) {
-			log.log(Level.SEVERE, "JMX command failed to execute, due to " +e);
-		} catch (MBeanException e) {
-			log.log(Level.SEVERE, "JMX command failed to execute, due to " +e);
-		}
-		
-		log.exiting(this.getClass().getName(),"execute");
-
-	}
 
 	/* (non-Javadoc)
 	 * @see com.redhat.gss.eap6.jgroups.JgroupsViewChangeListener#getName()
@@ -80,14 +59,6 @@ public abstract class AbstractJmxViewChangeListener implements
 	public String getName() {
 		return this.getClass().getName();
 	}
-	
-	abstract public String getObjectName();
-	
-	abstract public String getOperationName();
-	
-	abstract public Object[] getParameters();
-	
-	abstract public String[] getSignature();
 	
 
 }

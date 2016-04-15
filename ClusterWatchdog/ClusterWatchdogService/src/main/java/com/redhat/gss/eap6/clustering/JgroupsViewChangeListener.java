@@ -37,6 +37,19 @@ import org.jgroups.View;
 public interface JgroupsViewChangeListener {
 	
 	/**
+	 * Called during registration of the listener.
+	 * Basically a chance to initialise during startup. 
+	 */
+	public void executeOnRegistration();
+	
+	/**
+	 * Called during unregistration of the listener.
+	 * Basically a chance cleanup during shutdown. 
+	 * <br/><b>NOTE:</b>there is no guarantee that it will called, if the server get killed. 
+	 */
+	public void executeOnUnregistration();
+	
+	/**
 	 * Called if member is joining the cluster
 	 * @param view
 	 * @param membersJoinCluster
@@ -56,6 +69,13 @@ public interface JgroupsViewChangeListener {
 	 * @param membersFailureCluster
 	 */
 	public void executeOnFailure(View view, List<Address> membersFailureCluster);
+	
+	
+	/**
+	 * Called if {@code WatchDog} is ask to assume normal operations mode.
+	 * Implementation should not assume a previous failure.  
+	 */
+	public void assumeNormalOperationsMode();
 	
 	/**
 	 * Name to be logged during register/un-register

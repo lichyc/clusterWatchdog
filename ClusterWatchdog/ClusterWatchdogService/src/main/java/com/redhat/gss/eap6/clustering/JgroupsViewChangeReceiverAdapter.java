@@ -120,7 +120,8 @@ public class JgroupsViewChangeReceiverAdapter extends ReceiverAdapter {
 	public void registerViewChangeListener(JgroupsViewChangeListener jgroupsViewChangeListener) {
 		
 		registeredListeners.add(jgroupsViewChangeListener);
-		log.log(Level.INFO, "registered ViewChange-Listener named: " + jgroupsViewChangeListener.getName());		
+		log.log(Level.INFO, "registered ViewChange-Listener named: " + jgroupsViewChangeListener.getName());	
+		jgroupsViewChangeListener.executeOnRegistration();
 	}
 	
 	/**
@@ -131,12 +132,14 @@ public class JgroupsViewChangeReceiverAdapter extends ReceiverAdapter {
 		if (registeredListeners.contains(jgroupsViewChangeListener)) {
 			registeredListeners.remove(jgroupsViewChangeListener);
 			log.log(Level.INFO, "un-registered ViewChange-Listener named: " + jgroupsViewChangeListener.getName());
+			jgroupsViewChangeListener.executeOnUnregistration();
 		} else {
 			log.log(Level.WARNING, "Not un-registered ViewChange-Listener named: " + jgroupsViewChangeListener.getName() + " due to not registered before!");
 		}		
 	}
 		
 	/**
+	 * TODO: update as outdated 
 	 * By convention the watchdog just send a message, when it's get stopped.</BR>
 	 * The message payload is by convention the current server state.
 	 * If the state is "stopping" it's a shutdown, so this node will do any processing any more.
@@ -147,14 +150,48 @@ public class JgroupsViewChangeReceiverAdapter extends ReceiverAdapter {
 	public void receive(Message msg) {
 		
 		Address sender = msg.getSrc();
-		String msgPayload = new String(msg.getBuffer());		
-
-		if("stopping".equals(msgPayload)) {
+		String msgPayload = new String(msg.getBuffer());	
+		
+		switch (msgPayload) {
+		case "stopping":
 			log.log(Level.INFO, "Cluster node " + sender +" has send shutdown notification.");
 			membersSendShutdownCluster.add(sender);
-		} else {
-			log.log(Level.INFO, "Cluster node " + sender +" has send notification: " + msgPayload);
+			break;
+			
+		case ClusterWatchdogMBean.NORMAL_OPERATIONS:
+			log.log(Level.INFO, "Cluster node " + sender +" has send \""+ClusterWatchdogMBean.NORMAL_OPERATIONS+"\" notification.");
+			assumeNormalOperations();
+			break;
+
+		default:
+			log.log(Level.WARNING, "Cluster node " + sender +" has send notification: " + msgPayload +", which is not expected/supported!");
+			break;
 		}
     }
+
+	/**
+	 * process the "assumeNormalOperation"-Mode request.
+	 */
+	private void assumeNormalOperations() {
+		log.log(Level.INFO, "Watchdog was ask to assume normal operation mode.");
+		Iterator<JgroupsViewChangeListener> viewChangeListenerIter = registeredListeners.iterator();
+		while (viewChangeListenerIter.hasNext()) {
+			viewChangeListenerIter.next().assumeNormalOperationsMode();
+			
+		}
+		
+	}
+
+	/**
+	 * Unregister all currently registered {@code JgroupsViewChangeListener}s.
+	 */
+	public void unregisterAllViewChangeListeners() {
+		Iterator<JgroupsViewChangeListener> viewChangeListenerIter = registeredListeners.iterator();
+		while (viewChangeListenerIter.hasNext()) {
+			unregisterViewChangeListener((JgroupsViewChangeListener) viewChangeListenerIter.next());
+			
+		}
+		
+	}
 
 }

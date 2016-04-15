@@ -21,19 +21,12 @@
  */ 
 package com.redhat.gss.eap6.clustering.infinispan;
 
-import java.lang.management.ManagementFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.management.InstanceNotFoundException;
-import javax.management.MBeanException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-import javax.management.ReflectionException;
-
 import org.jgroups.Channel;
-import org.jgroups.ChannelListener;
+
+import com.redhat.gss.eap6.clustering.jmx.AbstractJmxChannelListener;
 
 /**
  *
@@ -42,11 +35,12 @@ import org.jgroups.ChannelListener;
  * $Date$:    Date of last commit
  *
  */
-public class EapInfinispanCacheCleaner implements ChannelListener {
+public class EapInfinispanCacheCleaner extends AbstractJmxChannelListener {
+	
+	public static final String HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME = "jboss.infinispan:type=Cache,name=\"entity(repl_sync)\",manager=\"hibernate\",component=Cache";
+	public static final String INFINISPAN_CACHE_CLEAN_OPERATIONNAME = "clean";
 	
 	private static final Logger log = Logger.getLogger( EapInfinispanCacheCleaner.class.getName() );
-	
-	private MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
 	
 	private boolean wasDisconnected = false;
 	/* (non-Javadoc)
@@ -56,7 +50,11 @@ public class EapInfinispanCacheCleaner implements ChannelListener {
 	public void channelConnected(Channel channel) {
 		if(wasDisconnected) {
 			log.log(Level.INFO, ("This is a reconnect, so we need clean the caches"));
-			executeCleanViaJmx("jboss.infinispan:type=Cache,name=\"repl(repl_async)\",manager=\"ejb34\",component=Cache");
+			try {
+				callOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_CLEAN_OPERATIONNAME, new Object[] { }, new String[] { });
+			} catch (Exception e) {
+				log.log(Level.SEVERE, "System wasn't able to react as expected on cluster failure! Manual admin action required! " +e);
+			}		
 			wasDisconnected = false;
 		}
 
@@ -80,23 +78,4 @@ public class EapInfinispanCacheCleaner implements ChannelListener {
 
 	}
 	
-	private void executeCleanViaJmx(String objectName) {
-		log.entering(this.getClass().getName(),"execute");
-		
-		try {
-			mBeanServer.invoke(new ObjectName(objectName), "clear", new Object[] { }, new String[] { });
-		} catch (InstanceNotFoundException e) {
-			log.log(Level.WARNING, "JMX command failed to execute, due to " +e);
-		} catch (MalformedObjectNameException e) {
-			log.log(Level.SEVERE, "JMX command failed to execute, due to " +e);
-		} catch (ReflectionException e) {
-			log.log(Level.SEVERE, "JMX command failed to execute, due to " +e);
-		} catch (MBeanException e) {
-			log.log(Level.SEVERE, "JMX command failed to execute, due to " +e);
-		}
-		
-		log.exiting(this.getClass().getName(),"execute");
-
-	}
-
 }

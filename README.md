@@ -15,7 +15,7 @@ The service provides 2 interfaces which can get implemented to react on changes 
 
 ## Cluster Watchdog Architecture
 This basically is an EJB-Jar wrapped by a trivial EAR. So you can use it as a separate deployment-unit or re-use the EJB-Jar inside your application.
-The watchdog creates a JGroups channel based on the default JGroups configuration of the JBoss EAP instance it gets deployed into. So it uses the same configuration as used by the web, ejb, inifispan cluster, unless you tweaked the default JBoss configuration.  
+The Watchdog creates a JGroups channel based on the default JGroups configuration of the JBoss EAP instance it gets deployed into. So it uses the same configuration as used by the web, ejb, infispan cluster, unless you tweaked the default JBoss configuration.  
 Status changes (changeView, disconnect, etc.) on this JGroups channel will trigger events the listener can process. A new channel is used to not predict any established channel or channel name, while reusing the default configuration this channel should behave in-sync with your working channels.  
 The Watchdog is not simply using a `org.infinispan.notifications.Listener` as this is limited to view changes. Only on the JGroups level we have a chance to get closer to the reason of a state change, that might be of interest to derive the required action.  
 
@@ -27,15 +27,23 @@ If a node is sending `stopping`, the other Watchdog instances can assume that th
 ## How to extend
 If you like to take action on:
 - a member joining||disappearing from the cluster: Implement `com.redhat.gss.eap6.clustering.JgroupsViewChangeListener` and register your class.
+-  `com.redhat.gss.eap6.clustering.jmx.AbstractJmxViewChangeListener` can get used for implementations using JMX.
 - local channel status change (connect/disconnect/close): Implement `org.jgroups.ChannelListener` and register your class.
-If you like to `clear` an Infinispan cache on disappear &|join of a member, you can extend from `com.redhat.gss.eap6.clustering.AbstractJmxViewChangeListener`.
+- `com.redhat.gss.eap6.clustering.jmx.AbstractJmxChannelListener` can get used for implementations using JMX.
 
 ## How to configure
-The configuration of the watchdog is in `clusterWatchdog.properties`. Simply edit to register you classes. The parameters can get overwritten by using `System-Properties`, so feel free to use command-line parameters.
+The configuration of the Watchdog is in `clusterWatchdog.properties`. Simply edit to register you classes. 
+The parameters can get overwritten by using `System-Properties`, so feel free to use command-line parameters.
+
+## How to operate
+The usual mode is deploy and let the Watchdog do its job.
+Nevertheless an MBean is exposed to to ask a cluster to assume normal operation mode. Let's assume in cluster one node had to get hardly killed. The ClusterWatchdog} will recognise this as failure of this node. In case the node can't get restarted to allow a analysis, calling this operation allow all other node to resume to normal operations mode.
 
 ## Example Implementations of Listeners
 - `com.redhat.gss.eap6.clustering.LoggingClusterChannelListener`: a trivial implementation of `org.jgroups.ChannelListener`, which simply logs the state changes on the channel fired by JGroups.
-- `com.redhat.gss.eap6.clustering.AbstractJmxViewChangeListener`: an implementation of `com.redhat.gss.eap6.clustering.JgroupsViewChangeListener` which invoke a `clear()` operation via JMX on an Infinispan cache.
+- `com.redhat.gss.eap6.clustering.infinispan.EapInfinispanCacheCleaner`: invokes a `clear()` operation via JMX on an Infinispan `entity` cache.
+-  `com.redhat.gss.eap6.clustering.infinispan.InfinispanEapHibernateSecondLevelCacheClear`: invokes a `clear()` operation via JMX on an Infinispan `entity` cache.
+
 
 ## How to build
 It's a Maven project, so arrest the usual suspects.

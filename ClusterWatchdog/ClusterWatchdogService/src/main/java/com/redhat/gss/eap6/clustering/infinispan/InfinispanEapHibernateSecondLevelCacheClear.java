@@ -28,10 +28,10 @@ import java.util.logging.Logger;
 import org.jgroups.Address;
 import org.jgroups.View;
 
-import com.redhat.gss.eap6.clustering.AbstractJmxViewChangeListener;
+import com.redhat.gss.eap6.clustering.jmx.AbstractJmxViewChangeListener;
 
 /**
- * Invoke a <code>clear()</code> via JMX on Infinispan Hibernate 2-Cache. 
+ * Invoke a <code>clear()</code> via JMX on Infinispan Hibernate 2nd-lavel Cache. 
  *
  * @author <a href="mailto:clichybi@redhat.com">Carsten Lichy-Bittendorf</a>
  * @version $Revision$
@@ -41,6 +41,8 @@ import com.redhat.gss.eap6.clustering.AbstractJmxViewChangeListener;
 public class InfinispanEapHibernateSecondLevelCacheClear extends AbstractJmxViewChangeListener {
 	private static final Logger log = Logger.getLogger( InfinispanEapHibernateSecondLevelCacheClear.class.getName() );
 	
+	public static final String HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME = "jboss.infinispan:type=Cache,name=\"entity(repl_sync)\",manager=\"hibernate\",component=Cache";
+	public static final String INFINISPAN_CACHE_CLEAN_OPERATIONNAME = "clean";
 	
 	
 	/* (non-Javadoc)
@@ -51,22 +53,6 @@ public class InfinispanEapHibernateSecondLevelCacheClear extends AbstractJmxView
 		return this.getClass().getName();
 	}
 	
-    public String getObjectName() {
-    	return "jboss.infinispan:type=Cache,name=\"entity(repl_sync)\",manager=\"hibernate\",component=Cache";
-    }
-	
-    public String getOperationName(){
-		return "clear";
-	}
-	
-    public Object[] getParameters(){
-		return new Object[] { };
-	}
-	
-    public String[] getSignature(){
-		return new String[] { };
-	}
-
 	@Override
 	public void executeOnJoin(View view, List<Address> membersJoinCluster) {
 		log.log(Level.INFO, "Recognized that members joined. No action required");
@@ -81,7 +67,28 @@ public class InfinispanEapHibernateSecondLevelCacheClear extends AbstractJmxView
 
 	@Override
 	public void executeOnFailure(View view, List<Address> membersFailureCluster) {
-		execute(view, membersFailureCluster);
+		try {
+			callOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_CLEAN_OPERATIONNAME, new Object[] { }, new String[] { });
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "System wasn't able to react as expected on cluster failure! Manual admin action required! " +e);
+		}	
+	}
+
+	@Override
+	public void executeOnRegistration() {
+		// empty by intend.
+		
+	}
+
+	@Override
+	public void executeOnUnregistration() {
+		// empty by intend.
+		
+	}
+
+	@Override
+	public void assumeNormalOperationsMode() {
+		// empty by intend.
 		
 	}
 

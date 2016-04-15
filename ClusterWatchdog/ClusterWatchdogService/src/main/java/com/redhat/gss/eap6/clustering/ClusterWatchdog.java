@@ -53,7 +53,7 @@ import org.jgroups.Message;
  */
 @Startup
 @Singleton
-public class ClusterWatchdog {
+public class ClusterWatchdog implements ClusterWatchdogMBean {
 
 	private static final Logger log = Logger.getLogger(ClusterWatchdog.class
 			.getName());
@@ -151,8 +151,9 @@ public class ClusterWatchdog {
 				watchdogChannel.send(new Message().setBuffer(getServerState()));
 				if (watchdogChannel.flushSupported()) watchdogChannel.startFlush(true);
 			} catch (Exception e) {
-				log.log(Level.WARNING, "Failed to sennd server state to other members due to: "+e);
+				log.log(Level.WARNING, "Failed to send server state to other members due to: "+e);
 			}
+			viewChangeReceiver.unregisterAllViewChangeListeners();
 			watchdogChannel.clearChannelListeners();
 			watchdogChannel.setReceiver(null);
 			watchdogChannel.close();
@@ -170,5 +171,18 @@ public class ClusterWatchdog {
 
 		}
 		return serverState.getBytes();
+	}
+
+	@Override
+	public void assumeNormalOperations() {
+		if (null != watchdogChannel) {
+			try {
+				watchdogChannel.send(new Message().setBuffer(ClusterWatchdogMBean.NORMAL_OPERATIONS.getBytes()));
+				if (watchdogChannel.flushSupported()) watchdogChannel.startFlush(true);
+			} catch (Exception e) {
+				log.log(Level.WARNING, "Failed to send request to other members due to: "+e);
+			}
+		}
+		
 	}
 }
