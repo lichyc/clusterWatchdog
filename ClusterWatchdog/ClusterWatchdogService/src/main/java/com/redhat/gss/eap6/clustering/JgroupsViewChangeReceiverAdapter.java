@@ -67,21 +67,24 @@ public class JgroupsViewChangeReceiverAdapter extends ReceiverAdapter {
 			log.log(Level.INFO, "Recognized a cluster member FAILURE, so watchdog will engage.");
 			Iterator<JgroupsViewChangeListener> registeredListenersIterator = registeredListeners.iterator();
 			while(registeredListenersIterator.hasNext()) {
-				registeredListenersIterator.next().executeOnFailure(view, membersFailureCluster);
+				new JgroupsViewChangeWorkerThread(registeredListenersIterator.next(), view, membersFailureCluster, JGroupsEvent.failure).start();
+//				registeredListenersIterator.next().executeOnFailure(view, membersFailureCluster);
 			}
 		} 
 		if ((null != membersExitCluster) && 0 < membersExitCluster.size()) {
 			log.log(Level.INFO, "Recognized a cluster member decrease, so watchdog will engage.");
 			Iterator<JgroupsViewChangeListener> registeredListenersIterator = registeredListeners.iterator();
 			while(registeredListenersIterator.hasNext()) {
-				registeredListenersIterator.next().executeOnExit(view, membersExitCluster);
+				new JgroupsViewChangeWorkerThread(registeredListenersIterator.next(), view, membersExitCluster, JGroupsEvent.exit).start();
+//				registeredListenersIterator.next().executeOnExit(view, membersExitCluster);
 			}
 		} 
 		if ((null != membersJoinCluster) && 0 < membersJoinCluster.size())  {
 			log.log(Level.INFO, "Recognized a cluster member increase, so watchdog will engage.");
 			Iterator<JgroupsViewChangeListener> registeredListenersIterator = registeredListeners.iterator();
 			while(registeredListenersIterator.hasNext()) {
-				registeredListenersIterator.next().executeOnJoin(view, membersJoinCluster);
+				new JgroupsViewChangeWorkerThread(registeredListenersIterator.next(), view, membersJoinCluster, JGroupsEvent.join).start();
+//				registeredListenersIterator.next().executeOnJoin(view, membersJoinCluster);
 			}
 		}		
 		clusterMembers = view.getMembers();		
@@ -176,7 +179,8 @@ public class JgroupsViewChangeReceiverAdapter extends ReceiverAdapter {
 		log.log(Level.INFO, "Watchdog was ask to assume normal operation mode.");
 		Iterator<JgroupsViewChangeListener> viewChangeListenerIter = registeredListeners.iterator();
 		while (viewChangeListenerIter.hasNext()) {
-			viewChangeListenerIter.next().assumeNormalOperationsMode();
+			new JgroupsViewChangeWorkerThread(viewChangeListenerIter.next(), null, null, JGroupsEvent.assumeNormalOperationsMode).start();
+//			viewChangeListenerIter.next().assumeNormalOperationsMode();
 			
 		}
 		

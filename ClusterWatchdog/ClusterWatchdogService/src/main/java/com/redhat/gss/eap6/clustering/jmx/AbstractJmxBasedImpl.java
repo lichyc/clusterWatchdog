@@ -45,6 +45,65 @@ public abstract class AbstractJmxBasedImpl {
 	
 	private MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
 	
+	private class JmxViewChangeWorkerThread extends Thread {
+		
+		private String objectName;
+		private String operationName;
+		private Object[] parameters;
+		private String[] signature;
+		
+		public JmxViewChangeWorkerThread(String objectName, String operationName, Object[] parameters, String[] signature) {
+			this.objectName = objectName;
+			this.operationName = operationName;
+			this.parameters = parameters;
+			this.signature = signature;
+		}
+		
+		public void run() {		
+			log.entering(this.getClass().getName(),"run");
+			
+			try {
+				mBeanServer.invoke(new ObjectName(objectName), operationName, parameters, signature);
+			} catch (InstanceNotFoundException e) {
+				log.log(Level.WARNING, "JMX command failed to execute, due to " +e);
+			} catch (MalformedObjectNameException e) {
+				log.log(Level.SEVERE, "JMX command failed to execute, due to " +e);
+			} catch (ReflectionException e) {
+				log.log(Level.SEVERE, "JMX command failed to execute, due to " +e);
+			} catch (MBeanException e) {
+				log.log(Level.SEVERE, "JMX command failed to execute, due to " +e);
+			}
+			
+			log.exiting(this.getClass().getName(),"run");
+		}
+		
+	}
+	
+	/**
+	 * A-synchronous operation to invoke an operation via JMX, as it spins of a new thread to make the call.
+	 * 
+	 * @param objectName
+	 * @param operationName
+	 * @param parameters
+	 * @param signature
+	 */
+	protected void launchOperation(String objectName, String operationName, Object[] parameters, String[] signature ) {
+		new JmxViewChangeWorkerThread(objectName, operationName, parameters, signature).start();
+	}
+	
+	
+	/**
+	 * Synchronous operation to invoke an operation via JMX.<br/>Please use in case you need the result only as blocking 
+	 * impacts jgroups cluster communication. Therefore set to deprecated.
+	 * 
+	 * @param objectName
+	 * @param operationName
+	 * @param parameters
+	 * @param signature
+	 * @return
+	 * @throws Exception
+	 */
+	@Deprecated
     protected Object callOperation(String objectName, String operationName, Object[] parameters, String[] signature ) throws Exception {
 		
 		try {

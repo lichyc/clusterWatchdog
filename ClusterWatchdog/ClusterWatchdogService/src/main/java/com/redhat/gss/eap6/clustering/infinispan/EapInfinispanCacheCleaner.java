@@ -51,7 +51,7 @@ public class EapInfinispanCacheCleaner extends AbstractJmxChannelListener {
 		if(wasDisconnected) {
 			log.log(Level.INFO, ("This is a reconnect, so we need clean the caches"));
 			try {
-				callOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_CLEAN_OPERATIONNAME, new Object[] { }, new String[] { });
+				launchOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_CLEAN_OPERATIONNAME, new Object[] { }, new String[] { });
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "System wasn't able to react as expected on cluster failure! Manual admin action required! " +e);
 			}		

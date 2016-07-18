@@ -68,7 +68,7 @@ public class InfinispanEapHibernateSecondLevelCacheClear extends AbstractJmxView
 	@Override
 	public void executeOnFailure(View view, List<Address> membersFailureCluster) {
 		try {
-			callOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_CLEAN_OPERATIONNAME, new Object[] { }, new String[] { });
+			launchOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_CLEAN_OPERATIONNAME, new Object[] { }, new String[] { });
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "System wasn't able to react as expected on cluster failure! Manual admin action required! " +e);
 		}	

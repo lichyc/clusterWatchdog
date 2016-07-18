@@ -21,29 +21,13 @@
  */ 
 package com.redhat.gss.eap6.clustering;
 
-import javax.management.MXBean;
-
 /**
- * ClusterWatchdog {@code MBean} interface.
- * 
+ *
  * @author <a href="mailto:clichybi@redhat.com">Carsten Lichy-Bittendorf</a>
  * @version $Revision$
  * $Date$:    Date of last commit
  *
  */
-
-@MXBean
-public interface ClusterWatchdogMBean {
-	
-	public static final String NORMAL_OPERATIONS = "assumeNormalOperations";
-	
-	/**
-	 * Ask a cluster via JMX to assume normal operation mode.
-	 * <br/>Let's assume in cluster one node had to get hardly killed. 
-	 * The {@code ClusterWatchdog} will recognise this as failure of this node.
-	 * In case the node can't get restarted to allow a analysis, calling this operation allow all other
-	 * node to resume to normal operations mode.
-	 */
-	public void assumeNormalOperations();
-
+public enum JGroupsEvent {
+	join, exit, failure, assumeNormalOperationsMode
 }

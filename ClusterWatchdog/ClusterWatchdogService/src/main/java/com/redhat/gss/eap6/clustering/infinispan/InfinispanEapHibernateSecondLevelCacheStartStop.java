@@ -68,7 +68,7 @@ public class InfinispanEapHibernateSecondLevelCacheStartStop extends AbstractJmx
 	public void executeOnUnregistration() {
 		if (byDefaultStarted) {
 			try {
-				callOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_START_OPERATIONNAME, new Object[] { }, new String[] { });
+				launchOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_START_OPERATIONNAME, new Object[] { }, new String[] { });
 				log.log(Level.INFO, "Hibernate 2nd-level cache is now started what is normal mode.");
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "System wasn't able start cache! Manual admin action required! " +e);
@@ -87,7 +87,7 @@ public class InfinispanEapHibernateSecondLevelCacheStartStop extends AbstractJmx
 		currentlyMembersInFailure.removeAll(membersJoinCluster);
 		if (byDefaultStarted && currentlyMembersInFailure.isEmpty()) {
 			try {
-				callOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_START_OPERATIONNAME, new Object[] { }, new String[] { });
+				launchOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_START_OPERATIONNAME, new Object[] { }, new String[] { });
 				log.log(Level.INFO, "Hibernate 2nd-level cache is now started again.");
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "System wasn't able start cache! Manual admin action required! " +e);
@@ -115,7 +115,7 @@ public class InfinispanEapHibernateSecondLevelCacheStartStop extends AbstractJmx
 		currentlyMembersInFailure.addAll(membersFailureCluster);
 		
 		try {
-			callOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_STOP_OPERATIONNAME, new Object[] { }, new String[] { });
+			launchOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_STOP_OPERATIONNAME, new Object[] { }, new String[] { });
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "System wasn't able to react as expected on cluster failure! Manual admin action required! " +e);
 		}
@@ -129,7 +129,7 @@ public class InfinispanEapHibernateSecondLevelCacheStartStop extends AbstractJmx
 	public void assumeNormalOperationsMode() {
 		if (byDefaultStarted) {
 			try {
-				callOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_START_OPERATIONNAME, new Object[] { }, new String[] { });
+				launchOperation(HIBERNATE_2ND_LEVEL_CACHE_OBJECTNAME, INFINISPAN_CACHE_START_OPERATIONNAME, new Object[] { }, new String[] { });
 				log.log(Level.INFO, "Hibernate 2nd-level cache is now started.");
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "System wasn't able start cache! Manual admin action required! " +e);

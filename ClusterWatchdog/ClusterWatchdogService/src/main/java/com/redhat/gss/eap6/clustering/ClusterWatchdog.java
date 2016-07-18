@@ -32,10 +32,13 @@ import javax.annotation.Resource;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.management.AttributeNotFoundException;
+import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
+import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 
@@ -63,6 +66,8 @@ public class ClusterWatchdog implements ClusterWatchdogMBean {
 	private JgroupsViewChangeReceiverAdapter viewChangeReceiver = new JgroupsViewChangeReceiverAdapter();
 	
 	private MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+	
+	 private ObjectName objectName = null;
 
 	@Resource(lookup = JGroupsChannelServiceActivator.JNDI_NAME)
 	private Channel watchdogChannel;
@@ -138,6 +143,20 @@ public class ClusterWatchdog implements ClusterWatchdogMBean {
 							+ e
 							+ " It's mandatory to take actions, as the watchdog can't protect your system!");
 		}
+		
+		try {
+			
+			objectName = new ObjectName("ClusterWatchdog:type=" + this.getClass().getName());
+			mBeanServer.registerMBean(this, objectName);
+		} catch (InstanceAlreadyExistsException e) {
+			log.severe("Failed to register ClusterWatchdog as MxBean due to: "+e);
+		} catch (MBeanRegistrationException e) {
+			log.severe("Failed to register ClusterWatchdog as MxBean due to: "+e);
+		} catch (NotCompliantMBeanException e) {
+			log.severe("Failed to register ClusterWatchdog as MxBean due to: "+e);
+		} catch (MalformedObjectNameException e) {
+			log.severe("Failed to register ClusterWatchdog as MxBean due to: "+e);
+		}
 
 		log.log(Level.INFO, "Cluster Watchdog started");
 
@@ -146,9 +165,24 @@ public class ClusterWatchdog implements ClusterWatchdogMBean {
 	@PreDestroy
 	public void stop() {
 		log.log(Level.INFO, "Cluster Watchdog get stopped!");
+		
+		try {
+			mBeanServer.unregisterMBean(this.objectName);
+		} catch (MBeanRegistrationException e1) {
+			log.severe("Failed to un-register ClusterWatchdog as MxBean due to: "+e1);
+		} catch (InstanceNotFoundException e1) {
+			log.severe("Failed to un-register ClusterWatchdog as MxBean due to: "+e1);
+		}
+		
+		String serverState = new String (getServerState());
+		if (!"stopping".equals(serverState)) {
+			log.log(Level.WARNING,"Server is still on state \""+serverState+"\", while watchdog assumes that it's stopping.");
+			serverState = new String("stopping");
+		}
+		
 		if (null != watchdogChannel) {
 			try {
-				watchdogChannel.send(new Message().setBuffer(getServerState()));
+				watchdogChannel.send(new Message().setBuffer(serverState.getBytes()));
 				if (watchdogChannel.flushSupported()) watchdogChannel.startFlush(true);
 			} catch (Exception e) {
 				log.log(Level.WARNING, "Failed to send server state to other members due to: "+e);
